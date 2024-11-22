@@ -1,0 +1,153 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<script async src="https://www.googletagmanager.com/gtag/js?id=G-CS58T8H16L"></script>
+		<script>
+		  window.dataLayer = window.dataLayer || [];
+		  function gtag(){dataLayer.push(arguments);}
+		  gtag('js', new Date());
+		  gtag('config', 'G-CS58T8H16L');
+		</script>
+
+		<title>RFM Analysis in SQL</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		<link rel="stylesheet" href="assets/css/main.css" />
+		<noscript><link rel="stylesheet" href="assets/css/noscript.css" /></noscript>
+	</head>
+	<body class="is-preload">
+		<div id="wrapper">
+			<header id="header">
+				<a href="index.html" class="logo"><strong>Rukesh Dutta</strong> <span>Home Page</span></a>
+				<nav>
+					<a href="#menu">Menu</a>
+				</nav>
+			</header>
+
+			<nav id="menu">
+				<ul class="links">
+					<li><a href="index.html">Home</a></li>
+					<li><a href="python_projects.html">Python Projects</a></li>
+					<li><a href="sql_projects.html">SQL Projects</a></li>
+					<li><a href="data_viz.html">Data Viz Projects</a></li>
+				</ul>
+				<ul class="actions stacked">
+					<li><a href="https://www.linkedin.com/in/rukesh-dutta/" target="_blank" class="button primary fit">Contact me</a></li>
+				</ul>
+			</nav>
+
+			<div id="main" class="alt">
+				<section id="one">
+					<div class="inner">
+						<header class="major">
+							<h1>Unleashing the Power of Returning Users</h1>
+						</header>
+						<p>
+						Using SQL, daily returning users can be identified and tracked for gaming competitions,website optimization. By analyzing the data on a daily basis, 
+						it's possible to create customized strategies to engage and retain users. These strategies could include personalized incentives, notifications, 
+						or rewards to encourage regular participation.
+						</p>
+						<span class="image main"><img src="images/returning_customers.png" alt="" /></span>
+						
+
+						<h3>Returning Customer Analysis in  SQL Code</h3>
+						<pre><code>-- Create a view to track daily user activity
+							CREATE VIEW user_daily_activity AS
+							SELECT 
+								user_id,
+								date(login_timestamp) AS activity_date,
+								COUNT(DISTINCT session_id) AS daily_sessions
+							FROM user_logins
+							GROUP BY user_id, activity_date;
+							
+							-- Identify daily returning users
+							WITH daily_users AS (
+								SELECT 
+									user_id,
+									activity_date,
+									daily_sessions
+								FROM user_daily_activity
+							),
+							consecutive_days AS (
+								SELECT 
+									user_id,
+									activity_date,
+									daily_sessions,
+									LAG(activity_date, 1) OVER (
+										PARTITION BY user_id 
+										ORDER BY activity_date
+									) AS previous_day
+								FROM daily_users
+							),
+							returning_users AS (
+								SELECT 
+									user_id,
+									activity_date,
+									daily_sessions,
+									DATEDIFF(activity_date, previous_day) AS days_since_last_login
+								FROM consecutive_days
+								WHERE DATEDIFF(activity_date, previous_day) = 1
+							)
+							
+							-- Generate daily returning users report
+							SELECT 
+								activity_date,
+								COUNT(DISTINCT user_id) AS daily_returning_users,
+								AVG(daily_sessions) AS avg_daily_sessions,
+								SUM(daily_sessions) AS total_daily_sessions
+							FROM returning_users
+							GROUP BY activity_date
+							ORDER BY activity_date DESC;
+							
+							-- Retention rate calculation
+							WITH user_first_login AS (
+								SELECT 
+									user_id,
+									MIN(date(login_timestamp)) AS first_login_date
+								FROM user_logins
+								GROUP BY user_id
+							),
+							daily_retention AS (
+								SELECT 
+									first_login_date,
+									COUNT(DISTINCT user_id) AS total_new_users,
+									COUNT(DISTINCT CASE WHEN DATEDIFF(date(login_timestamp), first_login_date) = 1 
+										THEN user_id END) AS users_returning_next_day
+								FROM user_logins
+								JOIN user_first_login USING (user_id)
+								GROUP BY first_login_date
+							)
+							
+							SELECT 
+								first_login_date,
+								total_new_users,
+								users_returning_next_day,
+								ROUND(users_returning_next_day * 100.0 / total_new_users, 2) AS day_1_retention_rate
+							FROM daily_retention
+							ORDER BY first_login_date DESC;</code></pre>
+					</div>
+				</section>
+			</div>
+
+			<footer id="footer">
+				<div class="inner">
+					<ul class="icons">
+						<li><a href="https://github.com/rukeshdutta/" target="_blank" class="icon brands alt fa-github"><span class="label">GitHub</span></a></li>
+						<li><a href="https://www.linkedin.com/in/rukesh-dutta/" target="_blank" class="icon brands alt fa-linkedin-in"><span class="label">LinkedIn</span></a></li>
+					</ul>
+					<ul class="copyright">
+						<li>&copy; Rukesh Dutta | 2023</li>
+					</ul>
+				</div>
+			</footer>
+		</div>
+<!-- Scripts -->
+		<script src="assets/js/jquery.min.js"></script>
+		<script src="assets/js/jquery.scrolly.min.js"></script>
+		<script src="assets/js/jquery.scrollex.min.js"></script>
+		<script src="assets/js/browser.min.js"></script>
+		<script src="assets/js/breakpoints.min.js"></script>
+		<script src="assets/js/util.js"></script>
+		<script src="assets/js/main.js"></script>
+	</body>
+</html>
